@@ -1,0 +1,7 @@
+1.  exists x. P(x) ^ (P(x) -> Q(x))
+2.  x	P(x) ^ (P(x) -> Q(x))
+3.		P(x)							^E, 2
+4.		P(x) -> Q(x)					->E, 2
+5.		Q(x)							->E, 4
+6.		exists x. Q(x)					EI, 2-5
+7.	exists x. Q(x)
