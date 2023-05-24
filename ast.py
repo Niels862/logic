@@ -55,30 +55,56 @@ class ASTNode:
             return f"{self.token} {self.left.token}. {self.right.unparse()}"
         return "?"
 
+    def __eq__(self, other):
+        if not isinstance(other, ASTNode):
+            return NotImplemented
+        return self.data == other.data and len(self.children) == len(other.children)\
+            and all(child == other_child for (child, other_child) in zip(self.children, other.children))
+
 
 class ASTAnd(ASTNode):
-    def __init__(self, left, right):
-        super().__init__("^", [left, right])
+    def __init__(self, symbol, left, right):
+        super().__init__(symbol, [left, right])
 
 
 class ASTOr(ASTNode):
-    def __init__(self, left, right):
-        super().__init__("v", [left, right])
+    def __init__(self, symbol, left, right):
+        super().__init__(symbol, [left, right])
+
+
+class ASTNot(ASTNode):
+    def __init__(self, symbol, formula):
+        super().__init__(symbol, [formula])
 
 
 class ASTImplication(ASTNode):
-    def __init__(self, left, right):
-        super().__init__("->", [left, right])
+    def __init__(self, symbol, left, right):
+        super().__init__(symbol, [left, right])
 
 
-class ASTExists(ASTNode):
-    def __init__(self, identifier, formula):
-        super().__init__("exists", [identifier, formula])
+class ASTEquality(ASTNode):
+    def __init__(self, symbol, left, right):
+        super().__init__(symbol, [left, right])
 
 
-class ASTForAll(ASTNode):
-    def __init__(self, identifier, formula):
-        super().__init__("forall", [identifier, formula])
+class ASTInequality(ASTNode):
+    def __init__(self, symbol, left, right):
+        super().__init__(symbol, [left, right])
+
+
+class ASTQuantifier(ASTNode):
+    def __init__(self, symbol, identifier, formula):
+        super().__init__(symbol, [identifier, formula])
+
+
+class ASTExists(ASTQuantifier):
+    def __init__(self, symbol, identifier, formula):
+        super().__init__(symbol, identifier, formula)
+
+
+class ASTForAll(ASTQuantifier):
+    def __init__(self, symbol, identifier, formula):
+        super().__init__(symbol, identifier, formula)
 
 
 class ASTVariable(ASTNode):
