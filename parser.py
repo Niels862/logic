@@ -116,11 +116,18 @@ class Parser:
 
     def parse_and_or(self):
         node = self.parse_equality()
+        found_and = found_or = False
         while self.tokens.peek().is_symbol("^", "v"):
             symbol = self.tokens.get()
-            right = self.parse_and_or()
+            right = self.parse_term()
             if symbol.is_symbol("v"):
+                found_or = True
                 node = ASTOr(symbol, node, right)
             else:
+                found_and = True
                 node = ASTAnd(symbol, node, right)
+            if found_and and found_or:
+                raise ParsingError(
+                    self.string, symbol, f"Operators 'and' and 'or' should be explicitly grouped",
+                )
         return node

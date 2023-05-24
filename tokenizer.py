@@ -1,5 +1,5 @@
 from collections import namedtuple
-from string import ascii_letters
+from string import ascii_letters, digits
 
 Symbol = namedtuple("Symbol", ("name", "synonyms"))
 
@@ -22,12 +22,17 @@ class Token:
             return ""
         return " " * self.part + "^" * len(self.read_data)
 
+    def copy(self):
+        return Token(self.type, self.data, self.read_data, self.part)
+
     def __eq__(self, other):
         if not isinstance(other, Token):
             return NotImplemented
         return self.data == other.data and self.type == other.type
 
     def __str__(self):
+        if isinstance(self.data, int):
+            return f"<{self.data}> ({self.type}, {self.part})"
         return f"'{self.data}' ({self.type}, {self.part})"
 
 
@@ -88,7 +93,7 @@ def symbol_token(string: str, length):
 
 def identifier_token(string, length):
     identifier = ""
-    while string and string[0] in ascii_letters:
+    while string and string[0] in ascii_letters + digits:
         identifier += string[0]
         string = string[1:]
     if identifier:
