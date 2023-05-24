@@ -11,8 +11,3 @@ class Formula:
 
     def unparse(self):
         return self.ast.unparse()
-
-    def __eq__(self, other):
-        if not isinstance(other, Formula):
-            return NotImplemented
-        return self.ast == other.ast

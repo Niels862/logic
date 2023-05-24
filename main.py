@@ -2,10 +2,10 @@ from formula import Formula
 
 
 def main():
-    formula = Formula("a v b")
+    formula = Formula("forall x. exists x. forall y. P(x, y)")
     formula.print_ast()
     print(formula.unparse())
-    print(formula == Formula("a or b"))
+    print(formula.ast.fresh("x"))
 
 
 if __name__ == "__main__":

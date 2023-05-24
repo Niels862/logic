@@ -10,13 +10,19 @@ class ASTNode:
     def left(self):
         if len(self.children) == 2:
             return self.children[0]
-        return ASTNode
+        raise ValueError("Cannot access 'left' of non-binary Node")
 
     @property
     def right(self):
         if len(self.children) == 2:
             return self.children[1]
-        return ASTNode
+        raise ValueError("Cannot access 'right' of non-binary Node")
+
+    @property
+    def child(self):
+        if len(self.children) == 1:
+            return self.children[0]
+        raise ValueError("Cannot access 'child' of non-unary Node")
 
     @property
     def token(self):
@@ -35,8 +41,8 @@ class ASTNode:
     def unparse(self):
         if self.data.is_identifier():
             if len(self.children):
-                return "{}({})".format(self.token, ", ".join([child.unparse() for child in self.children]))
-            return self.token
+                return "{}({})".format(str(self.token), ", ".join([child.unparse() for child in self.children]))
+            return str(self.token)
         if self.data.is_symbol("v", "^", "->", "==", "!="):
             if len(self.left.children) < 2 or (self.token == self.left.token and not self.data.is_symbol("->"))\
                     or self.data.is_symbol("->") and self.left.data.is_symbol("v", "^"):
@@ -52,8 +58,15 @@ class ASTNode:
         if self.data.is_symbol("~"):
             return f"{self.token}{self.children[0].unparse()}"
         if self.data.is_symbol("exists", "forall"):
-            return f"{self.token} {self.left.token}. {self.right.unparse()}"
+            return f"{self.token} (). {self.child.unparse()}"
         return "?"
+
+    def substitute_references(self, identifier, reference):
+        for child in self.children:
+            child.substitute_references(identifier, reference)
+
+    def fresh(self, identifier):
+        return all(child.fresh(identifier) for child in self.children)
 
     def __eq__(self, other):
         if not isinstance(other, ASTNode):
@@ -94,7 +107,12 @@ class ASTInequality(ASTNode):
 
 class ASTQuantifier(ASTNode):
     def __init__(self, symbol, identifier, formula):
-        super().__init__(symbol, [identifier, formula])
+        super().__init__(symbol, [formula])
+        self.identifier = identifier
+        self.child.substitute_references(identifier, 0)
+
+    def substitute_references(self, identifier, reference):
+        self.child.substitute_references(identifier, reference + 1)
 
 
 class ASTExists(ASTQuantifier):
@@ -110,6 +128,13 @@ class ASTForAll(ASTQuantifier):
 class ASTVariable(ASTNode):
     def __init__(self, identifier):
         super().__init__(identifier)
+
+    def substitute_references(self, identifier, reference):
+        if self.token == identifier.data:
+            self.data.data = reference
+
+    def fresh(self, identifier):
+        return not self.token == identifier
 
 
 class ASTPredicate(ASTNode):

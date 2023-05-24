@@ -103,8 +103,8 @@ class Parser:
         identifier = self.expect_identifier()
         self.expect_symbol(".")
         if symbol.is_symbol("exists"):
-            return ASTExists(symbol, ASTVariable(identifier), self.parse_quantifier())
-        return ASTForAll(symbol, ASTVariable(identifier), self.parse_quantifier())
+            return ASTExists(symbol, identifier, self.parse_quantifier())
+        return ASTForAll(symbol, identifier, self.parse_quantifier())
 
     def parse_implication(self):
         node = self.parse_and_or()

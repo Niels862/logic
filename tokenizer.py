@@ -22,6 +22,11 @@ class Token:
             return ""
         return " " * self.part + "^" * len(self.read_data)
 
+    def __eq__(self, other):
+        if not isinstance(other, Token):
+            return NotImplemented
+        return self.data == other.data and self.type == other.type
+
     def __str__(self):
         return f"'{self.data}' ({self.type}, {self.part})"
 
