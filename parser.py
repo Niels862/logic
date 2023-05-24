@@ -1,6 +1,6 @@
 from tokenizer import tokenize
 from ast import *
-from string import ascii_lowercase, ascii_uppercase
+from string import ascii_lowercase, ascii_uppercase, digits
 
 
 class ParsingError(Exception):
@@ -17,7 +17,7 @@ class Parser:
     def __init__(self, string):
         self.string = string
         self.tokens = tokenize(string)
-        self.function = lambda identifier: all(c in ascii_lowercase for c in identifier)
+        self.function = lambda identifier: all(c in ascii_lowercase + digits for c in identifier)
         self.predicate = lambda identifier: all(c in ascii_uppercase for c in identifier)
 
     def parse(self):
@@ -55,8 +55,8 @@ class Parser:
                     node = ASTPredicate(identifier, args)
                 else:
                     raise ParsingError(
-                        f"Identifier '{identifier}' does not match function or predicate map",
-                        self.string, self.tokens
+                        self.string, identifier,
+                        f"Identifier '{identifier.data}' does not match function or predicate map",
                     )
                 self.expect_symbol(")")
                 return node

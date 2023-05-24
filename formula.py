@@ -12,12 +12,6 @@ class Formula:
         self.ast.validate(first_order)
         self.ast.validate_language(self.language, language is None)
 
-    def print_ast(self):
-        self.ast.print()
-
-    def unparse(self):
-        return self.ast.unparse()
-
 
 class Model:
     def __init__(self, universe, functions=None, predicates=None):

@@ -64,7 +64,7 @@ class ASTNode:
     def unparse(self):
         return "?"
 
-    def value(self, valuation):
+    def value(self, valuation, model=None):
         pass
 
     def substitute_references(self, identifier, reference):
@@ -111,25 +111,25 @@ class ASTAnd(ASTBinary):
     def __init__(self, symbol, left, right):
         super().__init__(symbol, left, right)
 
-    def value(self, valuation):
-        return self.left.value(valuation) and self.right.value(valuation)
+    def value(self, valuation, model=None):
+        return self.left.value(valuation, model) and self.right.value(valuation, model)
 
 
 class ASTOr(ASTBinary):
     def __init__(self, symbol, left, right):
         super().__init__(symbol, left, right)
 
-    def value(self, valuation):
-        return self.left.value(valuation) or self.right.value(valuation)
+    def value(self, valuation, model=None):
+        return self.left.value(valuation, model) or self.right.value(valuation, model)
 
 
 class ASTImplication(ASTBinary):
     def __init__(self, symbol, left, right):
         super().__init__(symbol, left, right)
 
-    def value(self, valuation):
-        value_left = self.left.value(valuation)
-        return not value_left or (value_left and self.right.value(valuation))
+    def value(self, valuation, model=None):
+        value_left = self.left.value(valuation, model)
+        return not value_left or (value_left and self.right.value(valuation, model))
 
 
 class ASTEquality(ASTBinary):
@@ -142,8 +142,8 @@ class ASTEquality(ASTBinary):
             return True
         raise ASTValidationError(self)
 
-    def value(self, valuation):
-        return self.left.value(valuation) == self.right.value(valuation)
+    def value(self, valuation, model=None):
+        return self.left.value(valuation, model) == self.right.value(valuation, model)
 
 
 class ASTInequality(ASTBinary):
@@ -156,8 +156,8 @@ class ASTInequality(ASTBinary):
             return True
         raise ASTValidationError(self)
 
-    def value(self, valuation):
-        return self.left.value(valuation) != self.right.value(valuation)
+    def value(self, valuation, model=None):
+        return self.left.value(valuation, model) != self.right.value(valuation, model)
 
 
 class ASTNot(ASTNode):
@@ -172,8 +172,8 @@ class ASTNot(ASTNode):
     def unparse(self):
         return f"{self.token}{self.children[0].unparse()}"
 
-    def value(self, valuation):
-        return not self.child.value(valuation)
+    def value(self, valuation, model=None):
+        return not self.child.value(valuation, model)
 
 
 class ASTQuantifier(ASTNode):
@@ -198,16 +198,24 @@ class ASTExists(ASTQuantifier):
     def __init__(self, symbol, identifier, formula):
         super().__init__(symbol, identifier, formula)
 
-    def value(self, valuation):
-        return NotImplemented
+    def value(self, valuation, model=None):
+        for entry in model.universe:
+            valuation["$" + self.identifier.data] = entry
+            if self.child.value(valuation, model):  # ???
+                return True
+        return False
 
 
 class ASTForAll(ASTQuantifier):
     def __init__(self, symbol, identifier, formula):
         super().__init__(symbol, identifier, formula)
 
-    def value(self, valuation):
-        return NotImplemented
+    def value(self, valuation, model=None):
+        for entry in model.universe:
+            valuation["$" + self.identifier.data] = entry
+            if not self.child.value(valuation, model):  # ???
+                return False
+        return True
 
 
 class ASTVariable(ASTNode):
@@ -231,8 +239,18 @@ class ASTVariable(ASTNode):
             return self.dereferenced.data
         return self.token
 
-    def value(self, valuation):
-        return valuation.variables[self.token]
+    def value(self, valuation, model=None):
+        if isinstance(self.token, int):
+            value = valuation["$" + self.dereferenced.data]
+        elif self.token in valuation:
+            value = valuation[self.token]
+        elif self.token in model.functions:
+            value = model.functions[self.token]()
+        else:
+            raise KeyError(f"Variable '{self.token}' does not appear in valuation or function map")
+        if value not in model.universe:
+            raise KeyError(f"Value '{value}' does not appear in universe")
+        return value
 
 
 class ASTPredicate(ASTNode):
@@ -260,8 +278,10 @@ class ASTPredicate(ASTNode):
             self.token, ", ".join(child.unparse() for child in self.children)
         )
 
-    def value(self, valuation):
-        return valuation.predicates[self.token](*(child.value(valuation) for child in self.children))
+    def value(self, valuation, model=None):
+        if self.token not in model.predicates:
+            raise KeyError(f"Predicate '{self.token}' does not appear in function map")
+        return model.predicates[self.token](*(child.value(valuation, model) for child in self.children))
 
 
 class ASTFunction(ASTNode):
@@ -289,5 +309,10 @@ class ASTFunction(ASTNode):
             self.token, ", ".join(child.unparse() for child in self.children)
         )
 
-    def value(self, valuation):
-        return valuation.functions[self.token](*(child.value(valuation) for child in self.children))
+    def value(self, valuation, model=None):
+        if self.token not in model.functions:
+            raise KeyError(f"Function '{self.token}' does not appear in function map")
+        value = model.functions[self.token](*(child.value(valuation, model) for child in self.children))
+        if value not in model.universe:
+            raise KeyError(f"Value '{value}' does not appear in universe")
+        return value
